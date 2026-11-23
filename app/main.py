@@ -9,7 +9,12 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.scorer.parser import extract_text
 from app.scorer.rules import run_rule_evaluation
-from app.scorer.ml_model import get_role_classifier, JDMatcher, compute_composite_score
+from app.scorer.ml_model import (
+    get_role_classifier,
+    get_quality_evaluator,
+    JDMatcher,
+    compute_composite_score
+)
 
 
 app = FastAPI(title="Resume Scorer (简历评分与智能优化)", version="1.0.0")
@@ -24,6 +29,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 @app.on_event("startup")
 async def startup_event():
     get_role_classifier()
+    get_quality_evaluator()
 
 
 @app.get("/")
@@ -104,15 +110,18 @@ async def score_resume(
     # 1. Rule Engine Evaluation
     rule_results = run_rule_evaluation(resume_text)
 
-    # 2. ML Role Classifier
+    # 2. ML Role Classifier & Quality Evaluator
     classifier = get_role_classifier()
     role_predictions = classifier.predict(resume_text)
+
+    quality_evaluator = get_quality_evaluator()
+    quality_results = quality_evaluator.evaluate(resume_text)
 
     # 3. JD Semantic Matcher
     jd_results = JDMatcher.match(resume_text, jd or "")
 
     # 4. Composite Scoring
-    composite = compute_composite_score(rule_results, role_predictions, jd_results)
+    composite = compute_composite_score(rule_results, role_predictions, jd_results, quality_results)
 
     return JSONResponse({
         "success": True,
@@ -121,6 +130,7 @@ async def score_resume(
         "rules": rule_results,
         "ml": {
             "roles": role_predictions,
-            "jd": jd_results
+            "jd": jd_results,
+            "quality": quality_results
         }
     })

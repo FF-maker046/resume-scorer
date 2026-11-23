@@ -3,15 +3,25 @@ Machine Learning module for resume analysis.
 Includes:
 1. Job Role Classification (TF-IDF + LogisticRegression)
 2. Job Description (JD) Semantic Matching (TF-IDF + Cosine Similarity)
-3. Missing Keyword Gap Analysis
+3. Resume Quality Classifier & Benchmark Centroid (Trained on Positive/Negative corpus)
 """
+import os
 import re
 from typing import Dict, List, Any, Optional
 import jieba
+import joblib
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
+
+from app.scorer.rules import (
+    evaluate_contact,
+    evaluate_sections,
+    evaluate_quantification,
+    extract_skills,
+    evaluate_readability_and_length
+)
 
 
 # Common Chinese and English stopwords for resumes
@@ -87,7 +97,7 @@ CORPUS_SEEDS = {
 
 
 class RoleClassifier:
-    """Trained classifier that predicts which career role best matches a resume."""
+    """Predicts career track role probabilities for a given resume."""
     def __init__(self):
         self.roles = list(CORPUS_SEEDS.keys())
         self.vectorizer = TfidfVectorizer(tokenizer=jieba_tokenize, token_pattern=None, max_features=1000)
@@ -105,7 +115,6 @@ class RoleClassifier:
         self.clf.fit(X, labels)
 
     def predict(self, text: str) -> List[Dict[str, Any]]:
-        """Predict probability for each role, sorted in descending order."""
         X_test = self.vectorizer.transform([text])
         probs = self.clf.predict_proba(X_test)[0]
         classes = self.clf.classes_
@@ -119,6 +128,104 @@ class RoleClassifier:
 
         results.sort(key=lambda x: x["confidence"], reverse=True)
         return results
+
+
+class QualityEvaluator:
+    """
+    Evaluates resume quality against the positive/negative training corpus.
+    Provides:
+    - ML Pass Probability (初筛通过率预测)
+    - Benchmark Centroid Similarity (大厂高分基准相似度)
+    - Positive & Penalty Signal Extraction
+    """
+    def __init__(self):
+        self.model_path = os.path.join(os.path.dirname(__file__), "..", "models", "quality_model.joblib")
+        self.bundle = None
+        self._load_or_train()
+
+    def _load_or_train(self):
+        if not os.path.exists(self.model_path):
+            from train_model import train
+            train()
+        self.bundle = joblib.load(self.model_path)
+
+    def extract_structural_features(self, text: str) -> np.ndarray:
+        contact = evaluate_contact(text)
+        sections = evaluate_sections(text)
+        quant = evaluate_quantification(text)
+        skills = extract_skills(text)
+        readability = evaluate_readability_and_length(text)
+
+        features = [
+            contact["score"] / 100.0,
+            sections["score"] / 100.0,
+            min(1.0, quant["quant_count"] / 5.0),
+            min(1.0, quant["action_count"] / 6.0),
+            min(1.0, quant["star_count"] / 3.0),
+            min(1.0, skills["total_count"] / 10.0),
+            min(1.0, readability["char_count"] / 1500.0),
+            readability["score"] / 100.0
+        ]
+        return np.array(features, dtype=float)
+
+    def evaluate(self, text: str) -> Dict[str, Any]:
+        vectorizer = self.bundle["vectorizer"]
+        text_clf = self.bundle["text_clf"]
+        struct_clf = self.bundle["struct_clf"]
+        pos_centroid = self.bundle["pos_centroid"]
+        vocab = np.array(self.bundle["vocab"])
+        coefs = np.array(self.bundle["coefs"])
+
+        # 1. Text & Structural ML Predictions
+        X_tfidf = vectorizer.transform([text])
+        text_prob = float(text_clf.predict_proba(X_tfidf)[0][1])
+
+        struct_feats = self.extract_structural_features(text)
+        struct_prob = float(struct_clf.predict_proba([struct_feats])[0][1])
+
+        ensemble_prob = 0.5 * text_prob + 0.5 * struct_prob
+        pass_rate = int(round(ensemble_prob * 100))
+
+        # 2. Benchmark Centroid Cosine Similarity
+        vec_norm = X_tfidf.toarray() / (np.linalg.norm(X_tfidf.toarray()) + 1e-9)
+        raw_sim = float(np.dot(vec_norm, pos_centroid.T)[0][0])
+        benchmark_sim = int(min(100, max(25, round(raw_sim * 135))))
+
+        # 3. Signals in candidate resume
+        resume_tokens = set(jieba_tokenize(text))
+        pos_signals = []
+        neg_signals = []
+
+        top_pos_indices = np.argsort(coefs)[::-1]
+        for idx in top_pos_indices:
+            w = vocab[idx]
+            if w in resume_tokens and coefs[idx] > 0.05:
+                pos_signals.append(f"{w} (+{coefs[idx]:.2f})")
+                if len(pos_signals) >= 6:
+                    break
+
+        top_neg_indices = np.argsort(coefs)
+        for idx in top_neg_indices:
+            w = vocab[idx]
+            if w in resume_tokens and coefs[idx] < -0.05:
+                neg_signals.append(f"{w} ({coefs[idx]:.2f})")
+                if len(neg_signals) >= 5:
+                    break
+
+        if pass_rate >= 80:
+            quality_level = "大厂通关级 (高通过率)"
+        elif pass_rate >= 60:
+            quality_level = "良好竞争力 (建议局部优化)"
+        else:
+            quality_level = "初筛淘汰风险较高 (需重点改进)"
+
+        return {
+            "pass_rate": pass_rate,
+            "quality_level": quality_level,
+            "benchmark_similarity": benchmark_sim,
+            "positive_signals": pos_signals,
+            "penalty_signals": neg_signals
+        }
 
 
 class JDMatcher:
@@ -137,12 +244,11 @@ class JDMatcher:
         try:
             tfidf_matrix = vectorizer.fit_transform([resume_text, jd_text])
             sim = float(cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0])
-            score = int(min(100, max(20, round(sim * 150))))  # Scale to 0~100 score
+            score = int(min(100, max(20, round(sim * 150))))
         except Exception:
             score = 60
             sim = 0.4
 
-        # Extract top keywords from JD
         feature_names = np.array(vectorizer.get_feature_names_out())
         jd_tfidf = tfidf_matrix[1].toarray()[0]
         resume_tfidf = tfidf_matrix[0].toarray()[0]
@@ -169,6 +275,7 @@ class JDMatcher:
 
 # Singleton instances
 _ROLE_CLASSIFIER: Optional[RoleClassifier] = None
+_QUALITY_EVALUATOR: Optional[QualityEvaluator] = None
 
 
 def get_role_classifier() -> RoleClassifier:
@@ -178,40 +285,48 @@ def get_role_classifier() -> RoleClassifier:
     return _ROLE_CLASSIFIER
 
 
-def compute_composite_score(rule_res: Dict[str, Any], role_preds: List[Dict[str, Any]], jd_res: Dict[str, Any]) -> Dict[str, Any]:
-    """Calculate overall weighted score and letter rating."""
-    sec_score = rule_res["sections"]["score"]          # Weight: 20%
-    contact_score = rule_res["contact"]["score"]        # Weight: 10%
-    quant_score = rule_res["quantification"]["score"]  # Weight: 25%
-    skills_score = rule_res["skills"]["score"]          # Weight: 20%
-    read_score = rule_res["readability"]["score"]       # Weight: 10%
+def get_quality_evaluator() -> QualityEvaluator:
+    global _QUALITY_EVALUATOR
+    if _QUALITY_EVALUATOR is None:
+        _QUALITY_EVALUATOR = QualityEvaluator()
+    return _QUALITY_EVALUATOR
 
-    # Role/JD alignment: Weight 15%
-    if jd_res["has_jd"]:
-        fit_score = jd_res["similarity_score"]
-    else:
-        top_conf = role_preds[0]["confidence"] if role_preds else 70
-        fit_score = int(min(100, max(50, top_conf * 1.1)))
+
+def compute_composite_score(
+    rule_res: Dict[str, Any],
+    role_preds: List[Dict[str, Any]],
+    jd_res: Dict[str, Any],
+    quality_res: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Calculate overall weighted score and letter rating combining rules and ML."""
+    sec_score = rule_res["sections"]["score"]          # 15%
+    contact_score = rule_res["contact"]["score"]        # 10%
+    quant_score = rule_res["quantification"]["score"]  # 20%
+    skills_score = rule_res["skills"]["score"]          # 15%
+    read_score = rule_res["readability"]["score"]       # 10%
+    bench_score = quality_res["benchmark_similarity"]   # 15% (ML Benchmark Centroid)
+    ml_pass_score = quality_res["pass_rate"]           # 15% (ML Classifier)
 
     total = (
-        sec_score * 0.20 +
+        sec_score * 0.15 +
         contact_score * 0.10 +
-        quant_score * 0.25 +
-        skills_score * 0.20 +
+        quant_score * 0.20 +
+        skills_score * 0.15 +
         read_score * 0.10 +
-        fit_score * 0.15
+        bench_score * 0.15 +
+        ml_pass_score * 0.15
     )
     overall_score = int(round(total))
 
     if overall_score >= 90:
         grade = "S"
-        level = "卓越 (竞争力极强)"
+        level = "卓越 (大厂通过率极高)"
     elif overall_score >= 80:
         grade = "A"
-        level = "良好 (通过率较高)"
+        level = "良好 (具备强竞争力)"
     elif overall_score >= 70:
         grade = "B"
-        level = "中等 (有明确优化空间)"
+        level = "中等 (存在明确优化空间)"
     elif overall_score >= 60:
         grade = "C"
         level = "及格 (建议针对性调整)"
@@ -223,9 +338,9 @@ def compute_composite_score(rule_res: Dict[str, Any], role_preds: List[Dict[str,
         "结构完整性": sec_score,
         "联系信息": contact_score,
         "量化与成果": quant_score,
-        "技能匹配度": skills_score,
-        "排版规范性": read_score,
-        "岗位契合度": fit_score
+        "技能树覆盖": skills_score,
+        "大厂基准重合(ML)": bench_score,
+        "初筛通过预测(ML)": ml_pass_score
     }
 
     return {
