@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resume Scorer - 智能简历评分与优化系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Navigation Bar -->
+  <header class="border-b border-slate-200 bg-white sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i class="fa-solid fa-file-invoice text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">Resume Scorer</h1>
+          <p class="text-xs text-slate-500">规则引擎 + 机器学习双驱动评分系统</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>免 AI 消耗 · 本地极速
+        </span>
+        <a href="https://github.com/FF-maker046/resume-scorer" target="_blank" class="text-slate-500 hover:text-slate-900 text-sm font-medium flex items-center gap-1.5 transition">
+          <i class="fa-brands fa-github text-lg"></i> GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Top Welcome Banner -->
+    <div class="mb-8 text-center max-w-3xl mx-auto">
+      <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
+        全方位诊断简历竞争力，直击面试痛点
+      </h2>
+      <p class="mt-3 text-slate-600 text-base">
+        融合 <strong class="text-indigo-600">STAR 成果量化法则</strong>、<strong class="text-indigo-600">六维结构规则引擎</strong> 与 <strong class="text-indigo-600">scikit-learn 文本特征向量模型</strong>，毫秒级出具诊断与优化建议。
+      </p>
+    </div>
+
+    <!-- Input Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- Left Column: Input Form (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col gap-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i> 输入简历内容
+            </h3>
+            <button id="btnSample" type="button" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 transition">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> 填入测试样例
+            </button>
+          </div>
+
+          <!-- Input Mode Switcher -->
+          <div class="flex bg-slate-100 p-1 rounded-xl mb-4 text-xs font-semibold">
+            <button id="tabText" class="flex-1 py-1.5 rounded-lg bg-white shadow-sm text-slate-900 transition" onclick="switchTab('text')">
+              粘贴文本
+            </button>
+            <button id="tabFile" class="flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition" onclick="switchTab('file')">
+              上传文件 (PDF/Word/TXT)
+            </button>
+          </div>
+
+          <!-- Text Mode -->
+          <div id="paneText" class="block">
+            <textarea id="resumeText" rows="12" class="w-full text-sm rounded-xl border border-slate-200 p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition placeholder-slate-400 font-mono" placeholder="请将您的中文或英文简历文本直接粘贴至此处（包含教育、技能、工作/实习、项目经历等）..."></textarea>
+          </div>
+
+          <!-- File Mode -->
+          <div id="paneFile" class="hidden">
+            <div id="dropZone" class="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-8 text-center cursor-pointer transition bg-slate-50/50">
+              <input type="file" id="resumeFile" class="hidden" accept=".pdf,.docx,.doc,.txt" />
+              <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fa-regular fa-file-pdf text-xl"></i>
+              </div>
+              <p class="text-sm font-medium text-slate-700" id="fileLabel">点击或将简历拖曳至此区域</p>
+              <p class="text-xs text-slate-400 mt-1">支持 PDF、DOCX、TXT 格式文件</p>
+            </div>
+          </div>
+
+          <!-- Optional JD Input -->
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <div class="flex items-center justify-between cursor-pointer mb-2" onclick="toggleJdPane()">
+              <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-bullseye text-indigo-500"></i> 目标岗位招聘要求 (JD，选填)
+              </label>
+              <span id="jdArrow" class="text-xs text-slate-400 transform transition-transform"><i class="fa-solid fa-chevron-down"></i></span>
+            </div>
+            <div id="jdPane" class="hidden">
+              <textarea id="jdText" rows="4" class="w-full text-xs rounded-lg border border-slate-200 p-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition placeholder-slate-400 font-mono" placeholder="粘贴您想投递的岗位职责与任职要求，系统将使用余弦相似度算法精准计算匹配度与缺失关键词..."></textarea>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button id="btnSubmit" class="mt-5 w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-200 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-bolt"></i>
+            <span>开始多维度评分</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Results Section (7 cols) -->
+      <div class="lg:col-span-7">
+        
+        <!-- Placeholder Empty State -->
+        <div id="emptyState" class="h-full min-h-[460px] bg-white rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+          <div class="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 mb-4 text-2xl">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+          <h4 class="text-base font-bold text-slate-700">等待提交评测</h4>
+          <p class="text-xs text-slate-400 max-w-sm mt-1">在左侧粘贴简历内容或上传文件，点击「开始多维度评分」即可生成完整质量报告。</p>
+        </div>
+
+        <!-- Real Results Container (hidden initially) -->
+        <div id="resultsContainer" class="hidden space-y-6">
+          
+          <!-- Top Hero Card: Overall Score & Radar Chart -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              
+              <!-- Left: Score Badge -->
+              <div class="md:col-span-5 text-center md:text-left flex flex-col items-center md:items-start justify-center">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">综合竞争力评分</span>
+                <div class="flex items-baseline gap-2 mt-2">
+                  <span id="scoreNumber" class="text-6xl font-black text-indigo-600 tracking-tight">--</span>
+                  <span class="text-slate-400 text-xl font-medium">/ 100</span>
+                </div>
+                <div class="mt-3 flex items-center gap-2">
+                  <span id="gradeBadge" class="px-2.5 py-0.5 rounded-md text-xs font-black bg-indigo-100 text-indigo-700">等级 A</span>
+                  <span id="gradeLevel" class="text-xs font-medium text-slate-600">良好 (通过率较高)</span>
+                </div>
+                <p id="resumeMeta" class="text-xs text-slate-400 mt-3">有效字数: -- 字</p>
+              </div>
+
+              <!-- Right: Radar Chart -->
+              <div class="md:col-span-7 flex justify-center">
+                <div class="w-full max-w-[280px] h-[260px]">
+                  <canvas id="radarChart"></canvas>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ML Career Track & JD Matching -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- ML Role Prediction -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-brain text-purple-600"></i> 机器学习 · 岗位方向识别
+              </h4>
+              <div id="rolesList" class="space-y-2.5">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- JD Semantic Matching -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-bullseye text-blue-600"></i> JD 语义匹配度
+              </h4>
+              <div id="jdMatchContent">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Skills Extracted -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+              <i class="fa-solid fa-cubes text-emerald-600"></i> 提取到的技术栈与关键词
+              <span id="skillCountBadge" class="text-xs font-normal text-slate-400"></span>
+            </h4>
+            <div id="skillsPillBox" class="flex flex-wrap gap-1.5">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Suggestions & Action Items -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <i class="fa-solid fa-list-check text-amber-500"></i> 针对性优化建议与诊断
+            </h4>
+            <div id="suggestionsList" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4">
+      <p>Resume Scorer · 基于规则引擎与轻量级机器学习的简历质量评测工具 · 开源于 GitHub</p>
+    </div>
+  </footer>
+
+  <script>
+    let radarChartInstance = null;
+    let selectedFile = null;
+
+    function switchTab(mode) {
+      const tabText = document.getElementById('tabText');
+      const tabFile = document.getElementById('tabFile');
+      const paneText = document.getElementById('paneText');
+      const paneFile = document.getElementById('paneFile');
+
+      if (mode === 'text') {
+        tabText.className = "flex-1 py-1.5 rounded-lg bg-white shadow-sm text-slate-900 transition";
+        tabFile.className = "flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+        paneText.classList.remove('hidden');
+        paneFile.classList.add('hidden');
+      } else {
+        tabFile.className = "flex-1 py-1.5 rounded-lg bg-white shadow-sm text-slate-900 transition";
+        tabText.className = "flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+        paneFile.classList.remove('hidden');
+        paneText.classList.add('hidden');
+      }
+    }
+
+    function toggleJdPane() {
+      const pane = document.getElementById('jdPane');
+      const arrow = document.getElementById('jdArrow');
+      pane.classList.toggle('hidden');
+      arrow.classList.toggle('rotate-180');
+    }
+
+    // File Drag and Drop
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('resumeFile');
+    const fileLabel = document.getElementById('fileLabel');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        selectedFile = e.target.files[0];
+        fileLabel.innerHTML = `已选择: <strong class="text-indigo-600">${selectedFile.name}</strong> (${(selectedFile.size / 1024).toFixed(1)} KB)`;
+      }
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-indigo-500', 'bg-indigo-50/40');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+      if (e.dataTransfer.files.length > 0) {
+        selectedFile = e.dataTransfer.files[0];
+        fileInput.files = e.dataTransfer.files;
+        fileLabel.innerHTML = `已选择: <strong class="text-indigo-600">${selectedFile.name}</strong> (${(selectedFile.size / 1024).toFixed(1)} KB)`;
+      }
+    });
+
+    // Sample data loader
+    document.getElementById('btnSample').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/sample');
+        const data = await res.json();
+        document.getElementById('resumeText').value = data.sample_resume;
+        document.getElementById('jdText').value = data.sample_jd;
+        switchTab('text');
+        const jdPane = document.getElementById('jdPane');
+        if (jdPane.classList.contains('hidden')) toggleJdPane();
+      } catch (err) {
+        alert('加载测试数据失败: ' + err.message);
+      }
+    });
+
+    // Submit handler
+    document.getElementById('btnSubmit').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSubmit');
+      const isFileMode = !document.getElementById('paneFile').classList.contains('hidden');
+      const textVal = document.getElementById('resumeText').value;
+      const jdVal = document.getElementById('jdText').value;
+
+      if (!isFileMode && (!textVal || textVal.trim().length < 10)) {
+        alert('请输入至少 10 个字符的简历内容！');
+        return;
+      }
+      if (isFileMode && !selectedFile) {
+        alert('请先选择或拖入简历文件 (PDF/Word/TXT)！');
+        return;
+      }
+
+      // UI Loading state
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>正在解析并计算特征向量...</span>`;
+
+      const formData = new FormData();
+      if (isFileMode && selectedFile) {
+        formData.append('file', selectedFile);
+      } else {
+        formData.append('text', textVal);
+      }
+      if (jdVal && jdVal.trim()) {
+        formData.append('jd', jdVal.trim());
+      }
+
+      try {
+        const response = await fetch('/api/score', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.detail || '评分请求失败');
+        }
+
+        const result = await response.json();
+        renderResults(result);
+      } catch (error) {
+        alert('评分错误: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-bolt"></i><span>开始多维度评分</span>`;
+      }
+    });
+
+    function renderResults(data) {
+      document.getElementById('emptyState').classList.add('hidden');
+      const container = document.getElementById('resultsContainer');
+      container.classList.remove('hidden');
+
+      // 1. Overall Score & Grade
+      document.getElementById('scoreNumber').textContent = data.overall.overall_score;
+      const gradeBadge = document.getElementById('gradeBadge');
+      gradeBadge.textContent = '等级 ' + data.overall.grade;
+      document.getElementById('gradeLevel').textContent = data.overall.level;
+      document.getElementById('resumeMeta').textContent = `有效字符数: ${data.resume_length} 字 · 板块覆盖: ${data.rules.sections.found.length} / 5`;
+
+      // 2. Render Radar Chart
+      const radarData = data.overall.radar;
+      const labels = Object.keys(radarData);
+      const values = Object.values(radarData);
+
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
+      }
+
+      const ctx = document.getElementById('radarChart').getContext('2d');
+      radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '当前简历得分',
+            data: values,
+            fill: true,
+            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+            borderColor: 'rgb(79, 70, 229)',
+            pointBackgroundColor: 'rgb(79, 70, 229)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgb(79, 70, 229)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { color: '#e2e8f0' },
+              grid: { color: '#f1f5f9' },
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: { stepSize: 20, display: false },
+              pointLabels: { font: { size: 10, weight: '600' }, color: '#475569' }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      // 3. Render ML Roles
+      const rolesList = document.getElementById('rolesList');
+      rolesList.innerHTML = '';
+      data.ml.roles.slice(0, 3).forEach((r, idx) => {
+        const isTop = idx === 0;
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-semibold ${isTop ? 'text-indigo-600' : 'text-slate-600'}">${r.role} ${isTop ? '<span class="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded border border-indigo-200">最佳匹配</span>' : ''}</span>
+            <span class="font-mono text-slate-500">${r.confidence}%</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div class="${isTop ? 'bg-indigo-600' : 'bg-slate-400'} h-2 rounded-full" style="width: ${r.confidence}%"></div>
+          </div>
+        `;
+        rolesList.appendChild(div);
+      });
+
+      // 4. Render JD Match
+      const jdBox = document.getElementById('jdMatchContent');
+      if (data.ml.jd.has_jd) {
+        jdBox.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-slate-500">余弦相似度指数:</span>
+            <span class="text-sm font-bold text-blue-600">${data.ml.jd.similarity_score} 分 (${data.ml.jd.cosine_similarity})</span>
+          </div>
+          <div class="text-xs text-slate-600 mb-2">
+            <span class="text-emerald-600 font-semibold">✓ 匹配高频词:</span>
+            ${data.ml.jd.matched_keywords.length ? data.ml.jd.matched_keywords.map(k => `<span class="inline-block bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded text-[11px] mr-1 mb-1 border border-emerald-100">${k}</span>`).join('') : '<span class="text-slate-400">无明显高频重合</span>'}
+          </div>
+          <div class="text-xs text-slate-600">
+            <span class="text-amber-600 font-semibold">! 待补充要求:</span>
+            ${data.ml.jd.missing_keywords.length ? data.ml.jd.missing_keywords.map(k => `<span class="inline-block bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded text-[11px] mr-1 mb-1 border border-amber-100">${k}</span>`).join('') : '<span class="text-slate-400">主要要求基本覆盖</span>'}
+          </div>
+        `;
+      } else {
+        jdBox.innerHTML = `
+          <div class="py-4 text-center text-xs text-slate-400">
+            <p>未输入目标岗位 JD，已默认使用通用岗位基准模型进行拟合。</p>
+            <p class="mt-1 text-slate-500">在左侧展开填入岗位要求，即可开启关键词精准对比。</p>
+          </div>
+        `;
+      }
+
+      // 5. Render Skills
+      const skillsBox = document.getElementById('skillsPillBox');
+      skillsBox.innerHTML = '';
+      const allSkills = data.rules.skills.all_skills;
+      document.getElementById('skillCountBadge').textContent = `(共识别出 ${allSkills.length} 项)`;
+      if (allSkills.length) {
+        allSkills.forEach(s => {
+          const pill = document.createElement('span');
+          pill.className = "inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200";
+          pill.textContent = s;
+          skillsBox.appendChild(pill);
+        });
+      } else {
+        skillsBox.innerHTML = `<span class="text-xs text-slate-400">未检测到常见技术硬技能词汇</span>`;
+      }
+
+      // 6. Render Suggestions
+      const sugList = document.getElementById('suggestionsList');
+      sugList.innerHTML = '';
+      data.rules.suggestions.forEach(sug => {
+        const item = document.createElement('div');
+        let colorClass = "border-amber-200 bg-amber-50/50 text-amber-900";
+        let icon = '<i class="fa-solid fa-triangle-exclamation text-amber-500"></i>';
+
+        if (sug.type === 'error') {
+          colorClass = "border-rose-200 bg-rose-50/50 text-rose-900";
+          icon = '<i class="fa-solid fa-circle-xmark text-rose-500"></i>';
+        } else if (sug.type === 'success') {
+          colorClass = "border-emerald-200 bg-emerald-50/50 text-emerald-900";
+          icon = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+        }
+
+        item.className = `p-3 rounded-xl border ${colorClass} text-xs flex gap-3 items-start`;
+        item.innerHTML = `
+          <div class="mt-0.5">${icon}</div>
+          <div>
+            <p class="font-bold mb-0.5">${sug.title}</p>
+            <p class="text-slate-600 leading-relaxed">${sug.desc}</p>
+          </div>
+        `;
+        sugList.appendChild(item);
+      });
+
+      // Smooth scroll to results
+      container.scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
