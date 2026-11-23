@@ -40,19 +40,23 @@ ACTION_VERBS = [
 
 # Quantified metric patterns (numbers with metrics)
 QUANT_PATTERNS = [
-    r"\d+(?:\.\d+)?%",               # 30%, 99.9%
+    r"\d+(?:\.\d+)?%",               # 30%, 99.9%, 2.67%
     r"\d+(?:\.\d+)?\s*(?:倍|折)",      # 2倍, 1.5倍
     r"\d+(?:\.\d+)?\s*(?:万|千|亿)",   # 10万, 500千
     r"\d+\s*(?:ms|毫秒|s|秒)",        # 50ms, 200毫秒
     r"\bQPS\s*(?:达|达到|突破)?\s*\d+", # QPS 1000
-    r"\d+\s*(?:个|项|人|篇|套|名|行|次)",# 5项, 20人
-    r"(?:提升|降低|减少|增长|缩短|节省)\s*\d+", # 提升20
+    r"\d+\s*(?:个|项|人|篇|套|名|行|次|周|天|月|年|轮|门)", # 5项, 20人, 5个, 2周
+    r"GPA[：:]\s*\d+(?:\.\d+)?\s*/\s*\d+(?:\.\d+)?", # GPA: 4.14/5.00
+    r"(?:前|TOP|Top|top)\s*\d+(?:\.\d+)?%?",        # 前2.67%, TOP250
+    r"(?:一|二|三|特)等奖",                         # 三等奖
+    r"(?:提升|降低|减少|增长|缩短|节省|突破|承载|交付)\s*\d+", # 提升20
 ]
 
 
 def evaluate_contact(text: str) -> Dict[str, Any]:
     """Check for presence of contact info (phone and email)."""
-    phone_pattern = r"(?:(?:\+|00)86)?\s*1[3-9]\d{9}|\b\d{3}[-\s]\d{4}[-\s]\d{4}\b"
+    # Resilient phone pattern supporting optional +86 and separators
+    phone_pattern = r"(?:(?:\+|00)86\s*[- ]?)?1[3-9]\d(?:\s*|\-)\d{4}(?:\s*|\-)\d{4}\b|\b1[3-9]\d{9}\b|\b\d{3}[-\s]\d{4}[-\s]\d{4}\b"
     email_pattern = r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"
 
     phones = re.findall(phone_pattern, text)
@@ -62,7 +66,9 @@ def evaluate_contact(text: str) -> Dict[str, Any]:
     items = []
     if phones:
         score += 50
-        items.append(f"电话: {phones[0]}")
+        # clean phone
+        clean_phone = re.sub(r"[\s\-]", "", phones[0])
+        items.append(f"电话: {clean_phone}")
     if emails:
         score += 50
         items.append(f"邮箱: {emails[0]}")
@@ -78,11 +84,14 @@ def evaluate_contact(text: str) -> Dict[str, Any]:
 def evaluate_sections(text: str) -> Dict[str, Any]:
     """Check whether core resume sections exist."""
     section_patterns = {
-        "基本信息": [r"基本信息", r"个人信息", r"个人资料", r"求职意向", r"籍贯", r"出生年月"],
+        "基本信息": [r"基本信息", r"个人信息", r"个人资料", r"求职意向", r"籍贯", r"出生年月", r"姓\s*名", r"联系方式"],
         "教育背景": [r"教育背景", r"教育经历", r"学历", r"毕业院校", r"本科", r"硕士", r"博士", r"大学", r"学院"],
-        "专业技能": [r"专业技能", r"技能清单", r"技能特长", r"IT技能", r"掌握技术", r"技术栈"],
-        "工作与实习": [r"工作经历", r"工作经验", r"实习经历", r"实习经验", r"任职经历", r"职业经历"],
-        "项目经历": [r"项目经历", r"项目经验", r"项目介绍", r"主要项目", r"核心项目"]
+        "专业技能": [r"专业技能", r"技能清单", r"技能特长", r"IT技能", r"掌握技术", r"技术栈", r"编程语言"],
+        "项目经历": [r"项目经历", r"项目经验", r"项目介绍", r"主要项目", r"核心项目", r"开发经历"],
+        "实践与实习": [
+            r"工作经历", r"工作经验", r"实习经历", r"实习经验", r"任职经历", r"职业经历",
+            r"获奖证书", r"荣誉奖项", r"竞赛获奖", r"自我评价", r"校园经历"
+        ]
     }
 
     found = []
@@ -245,15 +254,27 @@ def run_rule_evaluation(text: str) -> Dict[str, Any]:
             "title": "缺少电子邮箱",
             "desc": "简历中未检测到有效邮箱地址，常用于接收面试邀请与 Offer，建议补充。"
         })
+    if contact["has_phone"] and contact["has_email"]:
+        suggestions.append({
+            "type": "success",
+            "title": "联系方式完备",
+            "desc": f"已成功识别到候选人有效联系方式（{', '.join(contact['details'])}）。"
+        })
 
     # 2. Sections
     if sections["missing"]:
         for sec in sections["missing"]:
             suggestions.append({
-                "type": "error",
-                "title": f"缺少「{sec}」模块",
-                "desc": f"标准简历应具备清晰的板块标题，检测到未包含明显的「{sec}」，建议补充该模块。"
+                "type": "warning" if "实践" in sec else "error",
+                "title": f"建议补充「{sec}」模块",
+                "desc": f"标准简历应具备清晰的板块标题，检测到未包含明显的「{sec}」，补充后可让经历更具说服力。"
             })
+    else:
+        suggestions.append({
+            "type": "success",
+            "title": "简历核心架构完整",
+            "desc": f"已完整覆盖基本信息、教育背景、专业技能、项目经历与实践模块等核心板块。"
+        })
 
     # 3. Quantification & STAR
     if quant["quant_count"] < 2:

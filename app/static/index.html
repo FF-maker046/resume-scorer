@@ -72,7 +72,7 @@
               粘贴文本
             </button>
             <button id="tabFile" class="flex-1 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition" onclick="switchTab('file')">
-              上传文件 (PDF/Word/TXT)
+              上传文件 (PDF/Word/图片/TXT)
             </button>
           </div>
 
@@ -84,12 +84,12 @@
           <!-- File Mode -->
           <div id="paneFile" class="hidden">
             <div id="dropZone" class="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-8 text-center cursor-pointer transition bg-slate-50/50">
-              <input type="file" id="resumeFile" class="hidden" accept=".pdf,.docx,.doc,.txt" />
+              <input type="file" id="resumeFile" class="hidden" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.webp" />
               <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fa-regular fa-file-pdf text-xl"></i>
+                <i class="fa-regular fa-file-lines text-xl"></i>
               </div>
               <p class="text-sm font-medium text-slate-700" id="fileLabel">点击或将简历拖曳至此区域</p>
-              <p class="text-xs text-slate-400 mt-1">支持 PDF、DOCX、TXT 格式文件</p>
+              <p class="text-xs text-slate-400 mt-1">支持 PDF、Word (.doc/.docx)、图片 (.png/.jpg) 及 TXT 格式</p>
             </div>
           </div>
 
