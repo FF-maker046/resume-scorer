@@ -625,11 +625,17 @@
 
         projList.innerHTML = '';
         data.projects.projects.forEach(p => {
-          let tierBadgeClass = "bg-purple-50 text-purple-700 border-purple-200";
-          let tierIcon = "fa-layer-group";
-          if (p.difficulty_tier === 'L3' || p.difficulty_tier === 'L4') {
+          let tierBadgeClass = "bg-blue-50 text-blue-700 border-blue-200";
+          let tierIcon = "fa-code";
+          if (p.difficulty_tier === 'L4') {
+            tierBadgeClass = "bg-rose-50 text-rose-700 border-rose-200";
+            tierIcon = "fa-rocket";
+          } else if (p.difficulty_tier === 'L3') {
             tierBadgeClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
             tierIcon = "fa-microchip";
+          } else if (p.difficulty_tier === 'L2') {
+            tierBadgeClass = "bg-sky-50 text-sky-700 border-sky-200";
+            tierIcon = "fa-laptop-code";
           } else if (p.difficulty_tier === 'L1') {
             tierBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
             tierIcon = "fa-triangle-exclamation";

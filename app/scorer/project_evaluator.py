@@ -10,7 +10,7 @@ import re
 from typing import Dict, List, Any, Optional
 
 
-# Typical beginner / tutorial / toy project patterns
+# Level 1: 基础入门 Demo / 模板课设 (Toy & Coursework)
 TOY_PROJECT_PATTERNS = [
     r"(?:图书|学生|员工|宿舍|教务|选课|成绩|超市|酒店|车辆|仓库)?\s*(?:信息)?管理系统",
     r"(?:简易|简单|个人|基础)?\s*(?:博客|留言板|记事本|待办|todolist|todo)",
@@ -19,23 +19,43 @@ TOY_PROJECT_PATTERNS = [
     r"(?:计算器|天气预报|贪吃蛇|五子棋|俄罗斯方块)"
 ]
 
-# Advanced engineering / research / technical depth indicators (L3 & L4)
-ADVANCED_TECH_INDICATORS = [
-    # 算法与AI硬核深度
-    r"(?:对抗攻击|对抗样本|FGSM|PGD|鲁棒性|模型加固)",
-    r"(?:RAG|检索增强|向量数据库|FAISS|Milvus|Chroma|Embedding|语义召回)",
-    r"(?:LoRA|微调|Fine-tuning|模型量化|蒸馏|剪枝|ONNX|TensorRT)",
-    r"(?:Transformer|BERT|GPT|LLM|大模型|Prompt\s*Engineering)",
-    r"(?:特征工程|交叉特征|CTR预估|召回排序|AUC调优)",
-    # 后端高并发与架构深度
-    r"(?:分布式锁|RedLock|Lua脚本|缓存穿透|缓存雪崩|缓存击穿|布隆过滤器)",
-    r"(?:分库分表|Sharding|主从复制|读写分离|分布式事务|Seata|TCC)",
-    r"(?:RPC|gRPC|Netty|异步编排|CompletableFuture|响应式编程)",
-    r"(?:JVM调优|GC调优|线程池参数|OOM排查|CPU飙高排查)",
-    r"(?:Kafka|RabbitMQ|RocketMQ)\s*(?:消息堆积|幂等性|延时队列|削峰填谷)",
-    # 工程质量与基准压测
-    r"(?:JMeter|压测|TPS|QPS|P99|性能瓶颈|并发测试)",
-    r"(?:CI/CD|自动化部署|Docker|Kubernetes|K8s|Prometheus|Grafana)"
+# Level 2: 常见教程复现 / API包装应用 (Tutorial & API Wrapper)
+TUTORIAL_WRAPPER_PATTERNS = [
+    r"(?:FGSM|快速梯度符号)\s*(?:对抗)?\s*(?:攻击)?\s*(?:演示|可视化|demo|Demo|小工具|系统)?",
+    r"(?:Streamlit|Gradio)?\s*(?:调用|对接|使用)?\s*(?:大模型|GLM|OpenAI|Kimi|GPT|通义)?\s*(?:API)?\s*(?:智能|简易)?(?:问答|对话|助手|聊天)",
+    r"(?:单机|单体)?\s*(?:基础)?\s*(?:商城|商城系统|商城后台|增删改查|CRUD)",
+    r"(?:MNIST|CIFAR|手写数字)?\s*(?:识别|分类)\s*(?:demo|Demo|小项目)?"
+]
+
+# Level 3: 工业级落地应用 / 知名硬核实训 (Industrial & Heavyweight Coursework)
+INDUSTRIAL_HEAVYWEIGHT_PATTERNS = [
+    # 算法与硬核攻防/推荐
+    r"(?:PGD|C&W|AutoAttack|对抗训练|对抗鲁棒性|模型加固)",
+    r"(?:RAG|检索增强).*(?:重排|Rerank|Cross-Encoder|混合检索|切片治理|长文档优化)",
+    r"(?:LoRA|QLoRA|微调|Fine-tuning|DPO|RLHF|量化|AWQ|GPTQ|ONNX|TensorRT)",
+    r"(?:CTR预估|DIN|DIEN|DSSM|BERT4Rec|协同过滤|召回排序|AUC调优)",
+    # 名校硬核实训 (CMU 15-445, MIT 6.824, xv6)
+    r"(?:CMU\s*15-445|BusTub|Buffer\s*Pool|B\+\s*Tree|LRU-K|火山模型|Volcano)",
+    r"(?:MIT\s*6\.824|Raft|线性一致性|共识算法|网络分区|混沌工程)",
+    r"(?:MIT\s*6\.S081|xv6|写时复制|虚拟内存分页|系统调用)",
+    # 高并发核心工程
+    r"(?:秒杀|防超卖|分布式锁|RedLock|Lua脚本|缓存穿透|布隆过滤器)",
+    r"(?:分库分表|Sharding|读写分离|分布式事务|Seata|TCC|两阶段提交)",
+    r"(?:Netty|自研RPC|连接池|心跳保活|异步编排)",
+    r"(?:JMeter|压测|TPS\s*\d+|QPS\s*\d+|P99|性能瓶颈排查)"
+]
+
+# Level 4: 顶级自研 / AI Infra / 顶会SOTA (Top-Tier Architecture & SOTA Research)
+TOP_TIER_SOTA_PATTERNS = [
+    # AI Infra 与底层高性能算子
+    r"(?:vLLM|TensorRT-LLM|PagedAttention|连续批处理|Continuous\s*Batching|推测解码|Speculative\s*Decoding)",
+    r"(?:FlashAttention|Triton\s*算子|CUDA\s*算子|Shared\s*Memory\s*优化|算子融合|Kernel)",
+    r"(?:Megatron|3D并行|流水线并行|张量并行|ZeRO-3|MFU调优)",
+    # 顶会一作与学术SOTA
+    r"(?:NeurIPS|ICML|CVPR|ICLR|ACL|KDD|AAAI|IJCAI).*(?:一作|SOTA|Spotlight|Oral)",
+    r"(?:刷新世界纪录|开源.*(?:1000|2000|3000|Star|Stars))",
+    # 工业级百万QPS与内核自研
+    r"(?:百万级?\s*QPS|自研.*网关|自研.*存储引擎|eBPF.*零拷贝|DPDK.*协议栈|Linux内核模块)"
 ]
 
 # Full Lifecycle signals
@@ -114,32 +134,46 @@ def evaluate_single_project(proj: Dict[str, str], target_role: str = "数据与�
     title = proj["title"]
 
     # 1. 难度与深度评级 (Technical Difficulty & Depth: L1 -> L4)
+    is_top_tier = any(re.search(p, text, re.I) for p in TOP_TIER_SOTA_PATTERNS)
+    is_industrial = any(re.search(p, text, re.I) for p in INDUSTRIAL_HEAVYWEIGHT_PATTERNS)
+    is_tutorial = any(re.search(p, text, re.I) for p in TUTORIAL_WRAPPER_PATTERNS)
     is_toy = any(re.search(p, text, re.I) for p in TOY_PROJECT_PATTERNS)
-    adv_hits = [re.search(p, text, re.I).group(0) for p in ADVANCED_TECH_INDICATORS if re.search(p, text, re.I)]
 
-    has_hardcore_ai = any(k in text for k in ["FGSM", "对抗攻击", "对抗样本", "FAISS", "RAG", "大模型API", "LoRA", "Transformer"])
-    has_hardcore_backend = any(k in text for k in ["分布式锁", "分库分表", "Kafka削峰", "JMeter压测", "JVM调优", "QPS"])
-
-    if has_hardcore_ai or has_hardcore_backend or len(adv_hits) >= 3:
+    if is_top_tier:
+        tier = "L4"
+        tier_title = "L4 顶级自研 / AI Infra / 顶会SOTA"
+        diff_score = 96
+        diff_desc = "具备顶级技术壁垒与底层突破（识别到底层算子/分布式训练/顶会科研等核心创新），达到大厂 SSP / 顶尖核心团队直通车水准。"
+        upgrade_tip = "技术壁垒极高。建议重点梳理系统级架构权衡（如 GPU 访存局部性、分布式跨节点通信拓扑），准备应对首席架构师级别的深度面试追问。"
+    elif is_industrial:
         tier = "L3"
-        tier_title = "L3 进阶核心工程与算法"
-        diff_score = 92
-        diff_desc = f"具备显著技术壁垒与前沿探索（深度识别到: {', '.join(adv_hits[:3])}），脱离常规教学课设范畴。"
+        tier_title = "L3 工业级落地 / 名校硬核实训"
+        diff_score = 88
+        diff_desc = "具备扎实工业级工程落地或名校硬核系统实现（覆盖关键复杂机制），在名企技术面试中具备强技术区分度。"
+        upgrade_tip = "项目具备良好技术深度。建议在简历中进一步丰富‘极限压测指标、性能瓶颈 Profiling 耗时拆解’，用更硬核的数据说话。"
+    elif is_tutorial or any(k in text for k in ["FGSM", "Streamlit", "大模型API", "GLM API", "智谱GLM"]):
+        tier = "L2"
+        tier_title = "L2 教程复现 / API包装应用"
+        diff_score = 72
+        diff_desc = "具备基础动手实践与流程打通能力，但整体属于开源教程复现或第三方 API 封装调用，在大厂技术面试中技术壁垒偏薄弱。"
+        if "FGSM" in text:
+            upgrade_tip = "当前属于基础的单文件梯度攻击教程复现（核心十几行代码即可完成）。建议升级为‘高阶对抗攻防加固系统’：引入 PGD/AutoAttack 强攻击，加入对抗训练加固，并在大模型/实际视觉系统上测试鲁棒性。"
+        elif any(k in text for k in ["Streamlit", "大模型", "GLM", "问答"]):
+            upgrade_tip = "当前属于基础的大模型 API + Streamlit 套壳开发。建议升级为‘企业级低延迟 RAG 检索增强引擎’：引入 BGE-Reranker 重排模型、自建长文档切片治理、实现连续流式并发与 P99 延迟治理。"
+        else:
+            upgrade_tip = "建议深入底层原理，补充真实高并发压测、性能调优或复杂场景容灾逻辑，脱离单纯的教程代码复现范畴。"
     elif is_toy:
         tier = "L1"
         tier_title = "L1 入门Demo / 常见课设"
-        diff_score = 65
-        diff_desc = "属于基础入门或常见初学者爬虫/管理系统模板，同质化程度偏高，在名企技术面试中区分度较弱。"
-    elif len(adv_hits) >= 1 or len(text) > 200:
-        tier = "L2"
-        tier_title = "L2 工业级实际应用"
-        diff_score = 80
-        diff_desc = f"具备实际工程落地与完整业务闭环（识别到关键技术点: {', '.join(adv_hits[:2]) if adv_hits else '标准工程规范'}）。"
+        diff_score = 58
+        diff_desc = "属于基础入门或常见初学者爬虫/增删改查模板，在应届求职中同质化极其严重，名企技术初筛区分度极低。"
+        upgrade_tip = "此项目在应届求职中同质化较为严重。建议在描述中强化‘反爬对抗/高并发异步/断点续传/自动化ETL入库’等进阶工程特性，或将其定位为辅助项目让位给核心技术项目。"
     else:
         tier = "L2"
         tier_title = "L2 基础业务项目"
-        diff_score = 75
+        diff_score = 70
         diff_desc = "具备基本的开发链路，建议进一步深挖底层原理与性能调优环节。"
+        upgrade_tip = "建议在项目中补充具体的技术难点攻坚过程与量化数据支撑。"
 
     # 2. 真实性与可信度 (Authenticity & Anti-Fabrication)
     has_github = bool(re.search(r"github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", text, re.I))
@@ -201,15 +235,11 @@ def evaluate_single_project(proj: Dict[str, str], target_role: str = "数据与�
     # Composite project quality score
     proj_composite = int(diff_score * 0.30 + auth_score * 0.25 + comp_score * 0.25 + relevance_score * 0.20)
 
-    # Specific upgrade suggestion
-    if is_toy:
-        upgrade_tip = "此项目在应届求职中同质化较为严重。建议在描述中强化‘反爬对抗/高并发异步/断点续传/自动化ETL入库’等进阶工程特性，或将其定位为辅助项目。"
-    elif not has_github and not has_demo_url:
-        upgrade_tip = "建议在项目中附带可公开访问的 GitHub 仓库或在线 Demo 地址，能使项目真实性与工程师自驱形象倍增。"
-    elif not has_specific_metrics:
-        upgrade_tip = "建议补充具体的量化数字（如：对抗扰动半径下攻击准确率变化、向量检索平均响应毫秒数等），用数据说话。"
-    else:
-        upgrade_tip = "项目整体工程与算法质量较高，可针对面试准备‘架构设计权衡考量（为什么选此技术栈而非其他）’的深度技术回答。"
+    # Append authenticity advice if missing link
+    if not has_github and not has_demo_url:
+        upgrade_tip += " 另外建议在简历中附带公开可访问的 GitHub 仓库或在线 Demo 地址以增强工程可信度。"
+    elif not has_specific_metrics and tier in ["L2", "L3"]:
+        upgrade_tip += " 另外建议补充具体的实验/压测数字（如延迟毫秒数、吞吐量或准确率变化），用数据支撑技术成果。"
 
     return {
         "title": title,
