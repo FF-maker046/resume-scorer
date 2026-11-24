@@ -168,13 +168,26 @@ class QualityEvaluator:
         ]
         return np.array(features, dtype=float)
 
-    def evaluate(self, text: str) -> Dict[str, Any]:
+    def evaluate(self, text: str, mode: str = "auto") -> Dict[str, Any]:
         vectorizer = self.bundle["vectorizer"]
         text_clf = self.bundle["text_clf"]
         struct_clf = self.bundle["struct_clf"]
         pos_centroid = self.bundle["pos_centroid"]
         vocab = np.array(self.bundle["vocab"])
         coefs = np.array(self.bundle["coefs"])
+
+        # Determine evaluation mode (campus vs social)
+        is_campus = any(k in text for k in ["至今", "在读", "本科", "硕士", "学院", "大学", "专业", "GPA", "gpa", "蓝桥杯", "竞赛", "奖学金", "研究生"])
+        active_mode = "campus" if (mode == "campus" or (mode == "auto" and is_campus)) else "social"
+
+        if active_mode == "campus":
+            target_centroid = self.bundle.get("campus_centroid", pos_centroid)
+            benchmark_label = "校招优质基准重合度"
+            mode_desc = "在校生 / 校招求职模式"
+        else:
+            target_centroid = self.bundle.get("social_centroid", pos_centroid)
+            benchmark_label = "社招成熟工程基准重合度"
+            mode_desc = "社招 / 职场跳槽模式"
 
         # 1. Text & Structural ML Predictions
         X_tfidf = vectorizer.transform([text])
@@ -188,8 +201,8 @@ class QualityEvaluator:
 
         # 2. Benchmark Centroid Cosine Similarity
         vec_norm = X_tfidf.toarray() / (np.linalg.norm(X_tfidf.toarray()) + 1e-9)
-        raw_sim = float(np.dot(vec_norm, pos_centroid.T)[0][0])
-        benchmark_sim = int(min(100, max(25, round(raw_sim * 135))))
+        raw_sim = float(np.dot(vec_norm, target_centroid.T)[0][0])
+        benchmark_sim = int(min(100, max(25, round(raw_sim * 145))))
 
         # 3. Signals in candidate resume
         resume_tokens = set(jieba_tokenize(text))
@@ -215,14 +228,17 @@ class QualityEvaluator:
         if pass_rate >= 80:
             quality_level = "大厂通关级 (高通过率)"
         elif pass_rate >= 60:
-            quality_level = "良好竞争力 (建议局部优化)"
+            quality_level = "良好竞争力 (具备面试潜力)"
         else:
             quality_level = "初筛淘汰风险较高 (需重点改进)"
 
         return {
+            "mode": active_mode,
+            "mode_desc": mode_desc,
             "pass_rate": pass_rate,
             "quality_level": quality_level,
             "benchmark_similarity": benchmark_sim,
+            "benchmark_label": benchmark_label,
             "positive_signals": pos_signals,
             "penalty_signals": neg_signals
         }

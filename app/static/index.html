@@ -106,6 +106,28 @@
             </div>
           </div>
 
+          <!-- Evaluation Mode Switcher -->
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <label class="text-xs font-bold text-slate-700 flex items-center justify-between mb-2">
+              <span class="flex items-center gap-1.5"><i class="fa-solid fa-graduation-cap text-indigo-500"></i> 求职评测模式</span>
+              <span id="detectedModeTag" class="text-[10px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 font-medium">双模态自动识别</span>
+            </label>
+            <div class="grid grid-cols-3 gap-1.5 text-xs">
+              <label class="cursor-pointer">
+                <input type="radio" name="evalMode" value="auto" checked class="peer hidden" />
+                <div class="py-1.5 px-2 text-center rounded-lg border border-slate-200 peer-checked:bg-indigo-50 peer-checked:border-indigo-500 peer-checked:text-indigo-700 font-medium transition">智能判断</div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="evalMode" value="campus" class="peer hidden" />
+                <div class="py-1.5 px-2 text-center rounded-lg border border-slate-200 peer-checked:bg-indigo-50 peer-checked:border-indigo-500 peer-checked:text-indigo-700 font-medium transition">校招/在校</div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="evalMode" value="social" class="peer hidden" />
+                <div class="py-1.5 px-2 text-center rounded-lg border border-slate-200 peer-checked:bg-indigo-50 peer-checked:border-indigo-500 peer-checked:text-indigo-700 font-medium transition">社招/职场</div>
+              </label>
+            </div>
+          </div>
+
           <!-- Submit Button -->
           <button id="btnSubmit" class="mt-5 w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-200 transition flex items-center justify-center gap-2">
             <i class="fa-solid fa-bolt"></i>
@@ -184,9 +206,12 @@
 
           <!-- ML Quality & Benchmark Evaluation -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
-              <i class="fa-solid fa-brain text-indigo-600"></i> 机器学习 · 简历质量预测与大厂基准比对
-            </h4>
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-brain text-indigo-600"></i> 机器学习 · 简历质量预测与基准比对
+              </h4>
+              <span id="mlModeBadge" class="text-[11px] font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200"></span>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
                 <div class="flex justify-between items-center text-xs mb-1">
@@ -201,13 +226,13 @@
 
               <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
                 <div class="flex justify-between items-center text-xs mb-1">
-                  <span class="text-slate-600 font-medium">大厂高分基准重合度 (向量中心)</span>
+                  <span id="mlBenchmarkLabel" class="text-slate-600 font-medium">行业高分基准重合度</span>
                   <span id="mlBenchmarkText" class="font-bold text-emerald-600 font-mono">--%</span>
                 </div>
                 <div class="w-full bg-slate-200 rounded-full h-2 mb-1.5 overflow-hidden">
                   <div id="mlBenchmarkBar" class="bg-emerald-500 h-2 rounded-full" style="width: 0%"></div>
                 </div>
-                <p class="text-[11px] text-slate-500">基于优质大厂通关样本集余弦相似度拟合</p>
+                <p id="mlBenchmarkDesc" class="text-[11px] text-slate-500">基于高分通关样本向量中心余弦相似度拟合</p>
               </div>
             </div>
 
@@ -363,6 +388,10 @@
       if (jdVal && jdVal.trim()) {
         formData.append('jd', jdVal.trim());
       }
+      const modeRadio = document.querySelector('input[name="evalMode"]:checked');
+      if (modeRadio) {
+        formData.append('mode', modeRadio.value);
+      }
 
       try {
         const response = await fetch('/api/score', {
@@ -493,8 +522,11 @@
         document.getElementById('mlPassRateBar').style.width = q.pass_rate + '%';
         document.getElementById('mlQualityLevel').textContent = q.quality_level;
 
+        document.getElementById('mlModeBadge').textContent = '🎯 评测基准: ' + q.mode_desc;
+        document.getElementById('mlBenchmarkLabel').textContent = q.benchmark_label;
         document.getElementById('mlBenchmarkText').textContent = q.benchmark_similarity + '%';
         document.getElementById('mlBenchmarkBar').style.width = q.benchmark_similarity + '%';
+        document.getElementById('mlBenchmarkDesc').textContent = '基于' + (q.mode === 'campus' ? '名校/大厂通关校招样本' : '大厂成熟工程样本') + '特征向量拟合';
 
         const posBox = document.getElementById('mlPosSignals');
         posBox.innerHTML = q.positive_signals.length

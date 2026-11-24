@@ -93,9 +93,10 @@ async def get_sample():
 async def score_resume(
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
-    jd: Optional[str] = Form(None)
+    jd: Optional[str] = Form(None),
+    mode: Optional[str] = Form("auto")
 ):
-    """Core scoring endpoint accepting file or text."""
+    """Core scoring endpoint accepting file or text, and optional mode (auto/campus/social)."""
     resume_text = ""
 
     if file and file.filename:
@@ -115,7 +116,7 @@ async def score_resume(
     role_predictions = classifier.predict(resume_text)
 
     quality_evaluator = get_quality_evaluator()
-    quality_results = quality_evaluator.evaluate(resume_text)
+    quality_results = quality_evaluator.evaluate(resume_text, mode=mode or "auto")
 
     # 3. JD Semantic Matcher
     jd_results = JDMatcher.match(resume_text, jd or "")

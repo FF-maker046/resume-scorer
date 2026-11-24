@@ -316,6 +316,28 @@ def run_rule_evaluation(text: str) -> Dict[str, Any]:
             "desc": f"成功识别出 {skills['total_count']} 项关键技术技能，覆盖分类: {', '.join(skills['by_category'].keys())}。"
         })
 
+    # 6. Academic, Competition & Open-Source Highlights (Key for Campus & Tech)
+    if re.search(r"GPA[：:]\s*(?:3\.[7-9]|4\.[0-9]|[89]\d)/|前\s*(?:[1-9]|10)%", text, re.I):
+        suggestions.append({
+            "type": "success",
+            "title": "优异学业成绩背书",
+            "desc": "检测到优异的绩点（GPA）或突出的专业排名前列，在校招与科研初筛中具备强大学术竞争力。"
+        })
+
+    if re.search(r"蓝桥杯|ACM|ICPC|数学建模|计算机设计大赛|互联网\+|软件杯|省[一二三]等奖|国[一二三]等奖", text):
+        suggestions.append({
+            "type": "success",
+            "title": "权威学科竞赛荣誉加持",
+            "desc": "检测到高含金量学科/算法程序设计竞赛获奖荣誉，证明了扎实的算法攻坚与工程落地能力。"
+        })
+
+    if re.search(r"github\.com/|开源|README", text, re.I):
+        suggestions.append({
+            "type": "success",
+            "title": "规范的开源工程素养",
+            "desc": "简历附带 GitHub 开源项目或重视 README 文档编写，体现了出色的工程师自驱力与代码规范性。"
+        })
+
     return {
         "contact": contact,
         "sections": sections,
