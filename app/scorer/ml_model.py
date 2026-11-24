@@ -312,26 +312,42 @@ def compute_composite_score(
     rule_res: Dict[str, Any],
     role_preds: List[Dict[str, Any]],
     jd_res: Dict[str, Any],
-    quality_res: Dict[str, Any]
+    quality_res: Dict[str, Any],
+    project_res: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
-    """Calculate overall weighted score and letter rating combining rules and ML."""
-    sec_score = rule_res["sections"]["score"]          # 15%
-    contact_score = rule_res["contact"]["score"]        # 10%
-    quant_score = rule_res["quantification"]["score"]  # 20%
+    """Calculate overall weighted score and letter rating combining rules, ML, and project evaluation."""
+    sec_score = rule_res["sections"]["score"]          # 10%
+    contact_score = rule_res["contact"]["score"]        # 5%
+    quant_score = rule_res["quantification"]["score"]  # 15%
     skills_score = rule_res["skills"]["score"]          # 15%
-    read_score = rule_res["readability"]["score"]       # 10%
+    read_score = rule_res["readability"]["score"]       # 5%
     bench_score = quality_res["benchmark_similarity"]   # 15% (ML Benchmark Centroid)
     ml_pass_score = quality_res["pass_rate"]           # 15% (ML Classifier)
 
-    total = (
-        sec_score * 0.15 +
-        contact_score * 0.10 +
-        quant_score * 0.20 +
-        skills_score * 0.15 +
-        read_score * 0.10 +
-        bench_score * 0.15 +
-        ml_pass_score * 0.15
-    )
+    if project_res and "overall_score" in project_res:
+        proj_score = project_res["overall_score"]       # 20%
+        total = (
+            sec_score * 0.10 +
+            contact_score * 0.05 +
+            proj_score * 0.20 +
+            quant_score * 0.15 +
+            skills_score * 0.15 +
+            read_score * 0.05 +
+            bench_score * 0.15 +
+            ml_pass_score * 0.15
+        )
+    else:
+        proj_score = sec_score
+        total = (
+            sec_score * 0.15 +
+            contact_score * 0.10 +
+            quant_score * 0.20 +
+            skills_score * 0.15 +
+            read_score * 0.10 +
+            bench_score * 0.15 +
+            ml_pass_score * 0.15
+        )
+
     overall_score = int(round(total))
 
     if overall_score >= 90:
@@ -351,10 +367,10 @@ def compute_composite_score(
         level = "待完善 (核心要素缺失)"
 
     radar_scores = {
-        "结构完整性": sec_score,
-        "联系信息": contact_score,
-        "量化与成果": quant_score,
-        "技能树覆盖": skills_score,
+        "结构规范度": sec_score,
+        "项目深度质量": proj_score,
+        "量化成果(STAR)": quant_score,
+        "技能树匹配": skills_score,
         "大厂基准重合(ML)": bench_score,
         "初筛通过预测(ML)": ml_pass_score
     }

@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.scorer.parser import extract_text
 from app.scorer.rules import run_rule_evaluation
+from app.scorer.project_evaluator import evaluate_all_projects
 from app.scorer.ml_model import (
     get_role_classifier,
     get_quality_evaluator,
@@ -121,14 +122,25 @@ async def score_resume(
     # 3. JD Semantic Matcher
     jd_results = JDMatcher.match(resume_text, jd or "")
 
-    # 4. Composite Scoring
-    composite = compute_composite_score(rule_results, role_predictions, jd_results, quality_results)
+    # 4. Project Deep 4D Evaluation (Difficulty, Authenticity, Completeness, Relevance)
+    target_role = role_predictions[0]["role"] if role_predictions else "数据与算法"
+    project_results = evaluate_all_projects(resume_text, target_role=target_role)
+
+    # 5. Composite Scoring
+    composite = compute_composite_score(
+        rule_results,
+        role_predictions,
+        jd_results,
+        quality_results,
+        project_results
+    )
 
     return JSONResponse({
         "success": True,
         "resume_length": len(resume_text),
         "overall": composite,
         "rules": rule_results,
+        "projects": project_results,
         "ml": {
             "roles": role_predictions,
             "jd": jd_results,

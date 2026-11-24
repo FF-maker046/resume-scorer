@@ -260,6 +260,49 @@
             </div>
           </div>
 
+          <!-- Project Deep 4D Evaluation Card -->
+          <div id="projectsCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <i class="fa-solid fa-diagram-project text-indigo-600"></i> 项目经历深度四维诊断
+                  <span id="projCountBadge" class="text-xs font-normal text-slate-400"></span>
+                </h4>
+                <p class="text-[11px] text-slate-500 mt-0.5">严格诊断：难度深度 · 真实性防虚构 · 工程生命周期 · 岗位匹配度</p>
+              </div>
+              <span id="projOverallScoreBadge" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">综合项目分: --</span>
+            </div>
+
+            <!-- 4 Dimensions Overview Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+              <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100 text-center">
+                <span class="text-[10px] text-slate-500 block mb-0.5 font-medium">技术难度与深度</span>
+                <span id="avgDiffScore" class="text-base font-bold text-indigo-600 font-mono">--</span>
+                <span class="text-[10px] text-slate-400"> / 100</span>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100 text-center">
+                <span class="text-[10px] text-slate-500 block mb-0.5 font-medium">真实性与防虚构</span>
+                <span id="avgAuthScore" class="text-base font-bold text-emerald-600 font-mono">--</span>
+                <span class="text-[10px] text-slate-400"> / 100</span>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100 text-center">
+                <span class="text-[10px] text-slate-500 block mb-0.5 font-medium">工程生命周期</span>
+                <span id="avgCompScore" class="text-base font-bold text-blue-600 font-mono">--</span>
+                <span class="text-[10px] text-slate-400"> / 100</span>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100 text-center">
+                <span class="text-[10px] text-slate-500 block mb-0.5 font-medium">岗位能力匹配度</span>
+                <span id="avgRelScore" class="text-base font-bold text-purple-600 font-mono">--</span>
+                <span class="text-[10px] text-slate-400"> / 100</span>
+              </div>
+            </div>
+
+            <!-- Per-Project Diagnostic Cards -->
+            <div id="projectsList" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
           <!-- Competitions Tier Evaluation (MOE White List) -->
           <div id="compCard" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div class="flex items-center justify-between mb-3">
@@ -566,6 +609,81 @@
         });
       } else {
         skillsBox.innerHTML = `<span class="text-xs text-slate-400">未检测到常见技术硬技能词汇</span>`;
+      }
+
+      // 5.2 Render Project Deep 4D Evaluation
+      const projCard = document.getElementById('projectsCard');
+      const projList = document.getElementById('projectsList');
+      if (data.projects && data.projects.projects && data.projects.projects.length > 0) {
+        projCard.classList.remove('hidden');
+        document.getElementById('projCountBadge').textContent = `(共解析出 ${data.projects.project_count} 个核心项目)`;
+        document.getElementById('projOverallScoreBadge').textContent = `项目综合评分: ${data.projects.overall_score} 分`;
+        document.getElementById('avgDiffScore').textContent = data.projects.avg_difficulty;
+        document.getElementById('avgAuthScore').textContent = data.projects.avg_authenticity;
+        document.getElementById('avgCompScore').textContent = data.projects.avg_completeness;
+        document.getElementById('avgRelScore').textContent = data.projects.avg_relevance;
+
+        projList.innerHTML = '';
+        data.projects.projects.forEach(p => {
+          let tierBadgeClass = "bg-purple-50 text-purple-700 border-purple-200";
+          let tierIcon = "fa-layer-group";
+          if (p.difficulty_tier === 'L3' || p.difficulty_tier === 'L4') {
+            tierBadgeClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
+            tierIcon = "fa-microchip";
+          } else if (p.difficulty_tier === 'L1') {
+            tierBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+            tierIcon = "fa-triangle-exclamation";
+          }
+
+          const div = document.createElement('div');
+          div.className = "p-4 rounded-xl border border-slate-200 bg-slate-50/70 text-xs transition hover:border-slate-300";
+
+          // Format lifecycle stages
+          const stagesHtml = p.lifecycle_stages.length > 0
+            ? p.lifecycle_stages.map(s => `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-100 mr-1 mb-1 font-medium"><i class="fa-solid fa-check mr-1 text-[9px]"></i>${s}</span>`).join('')
+            : '<span class="text-slate-400 text-[10px]">仅具备简单文本，缺少完整工程闭环</span>';
+
+          // Format authenticity evidence
+          const authHtml = p.authenticity_evidence.length > 0
+            ? p.authenticity_evidence.map(e => `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 mr-1 mb-1 font-medium"><i class="fa-solid fa-shield-halved mr-1 text-[9px]"></i>${e}</span>`).join('')
+            : '<span class="text-amber-600 text-[10px]">⚠️ 缺少代码仓库或线上演示</span>';
+
+          div.innerHTML = `
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-200">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-slate-800 text-sm">${p.title}</span>
+                <span class="px-2 py-0.5 rounded-md text-[11px] font-bold border ${tierBadgeClass} flex items-center gap-1">
+                  <i class="fa-solid ${tierIcon} text-[10px]"></i> ${p.difficulty_title}
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-slate-500">匹配度: <strong class="text-slate-700 font-mono">${p.relevance_score}%</strong></span>
+                <span class="px-2 py-0.5 rounded bg-white text-indigo-600 font-bold font-mono border border-slate-200">${p.composite_score} 分</span>
+              </div>
+            </div>
+            
+            <p class="text-slate-600 mb-2 leading-relaxed text-[11px]">${p.difficulty_desc}</p>
+
+            <div class="space-y-1.5 pt-1 text-[11px]">
+              <div class="flex items-start gap-1">
+                <span class="text-slate-400 shrink-0 w-16">真实性背书:</span>
+                <div class="flex flex-wrap">${authHtml}</div>
+              </div>
+              <div class="flex items-start gap-1">
+                <span class="text-slate-400 shrink-0 w-16">生命周期:</span>
+                <div class="flex flex-wrap">${stagesHtml}</div>
+              </div>
+            </div>
+
+            <div class="mt-2.5 p-2 rounded-lg bg-indigo-50/70 border border-indigo-100 text-[11px] text-indigo-900 flex items-start gap-1.5">
+              <i class="fa-regular fa-lightbulb text-indigo-600 mt-0.5 shrink-0"></i>
+              <span><strong>深度优化建议:</strong> ${p.upgrade_tip}</span>
+            </div>
+          `;
+          projList.appendChild(div);
+        });
+      } else {
+        projCard.classList.add('hidden');
       }
 
       // 5.5 Render Competitions (MOE White List Tiers)
