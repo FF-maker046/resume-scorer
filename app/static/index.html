@@ -260,6 +260,19 @@
             </div>
           </div>
 
+          <!-- Competitions Tier Evaluation (MOE White List) -->
+          <div id="compCard" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-trophy text-amber-500"></i> 学科竞赛含金量分级诊断 (教育部白名单标准)
+              </h4>
+              <span class="text-[11px] text-slate-400">大厂招聘初筛视角</span>
+            </div>
+            <div id="compList" class="space-y-2.5">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
           <!-- Suggestions & Action Items -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
@@ -553,6 +566,44 @@
         });
       } else {
         skillsBox.innerHTML = `<span class="text-xs text-slate-400">未检测到常见技术硬技能词汇</span>`;
+      }
+
+      // 5.5 Render Competitions (MOE White List Tiers)
+      const compCard = document.getElementById('compCard');
+      const compList = document.getElementById('compList');
+      if (data.rules.competitions && data.rules.competitions.length > 0) {
+        compCard.classList.remove('hidden');
+        compList.innerHTML = '';
+        data.rules.competitions.forEach(c => {
+          let badgeBg = "bg-amber-100 text-amber-800 border-amber-200";
+          let tierDesc = "初阶普及型 (初筛区分度较低)";
+          if (c.tier === 'T1') {
+            badgeBg = "bg-emerald-100 text-emerald-800 border-emerald-200";
+            tierDesc = "顶级硬核 (大厂算法直通车)";
+          } else if (c.tier === 'T2') {
+            badgeBg = "bg-blue-100 text-blue-800 border-blue-200";
+            tierDesc = "高含金量 (白名单核心国奖)";
+          } else if (c.tier === 'T3') {
+            badgeBg = "bg-indigo-100 text-indigo-800 border-indigo-200";
+            tierDesc = "良好进阶 (白名单省级荣誉)";
+          }
+
+          const div = document.createElement('div');
+          div.className = "p-3.5 rounded-xl border border-slate-200 bg-slate-50/80 text-xs";
+          div.innerHTML = `
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeBg}">${c.tier}</span>
+                <span class="font-bold text-slate-800">${c.name}</span>
+              </div>
+              <span class="text-[11px] text-slate-500 font-medium">${tierDesc}</span>
+            </div>
+            <p class="text-slate-600 leading-relaxed">${c.comment}</p>
+          `;
+          compList.appendChild(div);
+        });
+      } else {
+        compCard.classList.add('hidden');
       }
 
       // 6. Render Suggestions

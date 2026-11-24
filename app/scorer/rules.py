@@ -230,6 +230,80 @@ def extract_skills(text: str) -> Dict[str, Any]:
     }
 
 
+# Competition Grading Database (Based on MOE White List and Industry Hiring Consensus)
+COMPETITION_EVALUATIONS = [
+    {
+        "id": "acm",
+        "detect": r"(?:ACM(?:-ICPC)?|ICPC|CCPC)",
+        "tiers": [
+            (r"(?:金奖|银奖|铜奖|金牌|银牌|铜牌|区域赛|总决赛|出线|全国)", "T1", "ACM/ICPC 区域赛或总决赛荣誉", "算法界硬通货，技术大厂初筛免试直通车，具备压倒性编程算法竞争力。"),
+            (r".*", "T3", "ACM/ICPC 校级选拔或参赛", "体现了对高难度算法竞赛的追求，建议继续冲刺区域赛奖项。")
+        ]
+    },
+    {
+        "id": "lanqiao",
+        "detect": r"蓝桥杯",
+        "tiers": [
+            (r"(?:国赛|全国总决赛)[^\n]{0,20}(?:一等奖|国一)", "T1", "蓝桥杯全国一等奖", "国家级算法竞赛最高荣誉之一，在各大厂算法岗具备很强认可度。"),
+            (r"(?:国赛|全国总决赛)[^\n]{0,20}(?:二等奖|三等奖|国二|国三)", "T2", "蓝桥杯全国二/三等奖", "教育部白名单国家级总决赛荣誉，在校招初筛中具有明确加分效应。"),
+            (r"(?:省(?:级)?一等奖|省一)", "T2", "蓝桥杯省一等奖 (晋级全国总决赛)", "省级最高奖并入围国赛，在校招技术岗具备良好的算法基本功证明。"),
+            (r"(?:省(?:级)?二等奖|省二)", "T3", "蓝桥杯省二等奖", "白名单良好进阶奖项，具备一定算法思维，但在大厂算法岗竞争中区分度居中。"),
+            (r"(?:省(?:级)?三等奖|省三|优秀奖)", "T4", "蓝桥杯省三等奖 / 普及型奖项", "行业公认蓝桥杯省三获奖比例大、门槛较低，各大厂初筛与技术面试官普遍视为普及参与型经历，几乎不产生实质加分。建议在简历中弱化此奖项版面，重点展示高难度工程项目，或冲刺省一及更高梯度赛事。"),
+            (r".*", "T4", "蓝桥杯参赛经历", "算法参赛基础经历，建议补充最终奖项或冲刺更高名次。")
+        ]
+    },
+    {
+        "id": "math_model",
+        "detect": r"(?:数学建模|数模|MCM|ICM)",
+        "tiers": [
+            (r"(?:O奖|Outstanding|全国特等奖)", "T1", "数学建模顶尖国际奖项 (O奖)", "全球数模最高荣誉，对量化、数据科学与算法岗具有极强背书。"),
+            (r"(?:国一|国二|国家一等奖|国家二等奖|M奖|F奖|Finalist|Meritorious)", "T2", "数学建模国家级/美赛一等奖", "国家白名单核心荣誉，体现出色复杂问题数学建模与团队攻坚能力。"),
+            (r"(?:省一|省二|省级一等奖|省级二等奖|H奖|Honorable)", "T3", "数学建模省级一/二等奖 / 美赛H奖", "良好的学术与建模实践，但在大厂核心算法岗区分度中等。"),
+            (r".*", "T4", "数学建模省三或参赛", "参与型经历，更注重后续项目实际产出。")
+        ]
+    },
+    {
+        "id": "csp",
+        "detect": r"(?:CCF\s*CSP|CCSP)",
+        "tiers": [
+            (r"(?:3[0-9]{2}|4[0-9]{2}|500|前\s*[1-5]%|CCSP)", "T1", "CCF CSP 300+高分 / CCSP荣誉", "计算机学会官方权威认证，大厂免笔试硬通货。"),
+            (r"(?:2[0-9]{2}|前\s*10%)", "T2", "CCF CSP 200+良好", "具备扎实的数据结构与代码实现底子。"),
+            (r".*", "T3", "CCF CSP 基础认证", "建议向 300 分以上冲刺以获取大厂笔试免试。")
+        ]
+    },
+    {
+        "id": "design_contest",
+        "detect": r"(?:计算机设计大赛|天梯赛|互联网\+|创新大赛|挑战杯)",
+        "tiers": [
+            (r"(?:国家级?|全国|特等奖|金奖|银奖|国一|国二)", "T2", "国家级白名单竞赛荣誉", "教育部白名单国家级竞赛，体现出色的工程综合素质与项目落地能力。"),
+            (r"(?:省(?:级)?金奖|省(?:级)?银奖|省(?:级)?一等奖|省(?:级)?二等奖|铜奖)", "T3", "省级白名单竞赛荣誉", "体现了良好的课外实践能力，建议突出个人核心贡献。"),
+            (r".*", "T4", "白名单竞赛参与/省三", "基础参赛荣誉，建议在简历中简短带过，将主要版面留给核心技术项目。")
+        ]
+    }
+]
+
+
+def evaluate_competitions(text: str) -> List[Dict[str, Any]]:
+    """Scan and evaluate competition prestige based on MOE White List."""
+    hits = []
+    lines = text.split("\n")
+    for comp in COMPETITION_EVALUATIONS:
+        for line in lines:
+            if re.search(comp["detect"], line, re.I):
+                for pat, tier, name, comment in comp["tiers"]:
+                    if re.search(pat, line, re.I):
+                        matched = {
+                            "tier": tier,
+                            "name": name,
+                            "comment": comment,
+                            "raw_text": line.strip()
+                        }
+                        if not any(h["name"] == matched["name"] for h in hits):
+                            hits.append(matched)
+                        break
+    return hits
+
+
 def run_rule_evaluation(text: str) -> Dict[str, Any]:
     """Run all rule engines and generate structured diagnostics & suggestions."""
     contact = evaluate_contact(text)
@@ -237,6 +311,7 @@ def run_rule_evaluation(text: str) -> Dict[str, Any]:
     quant = evaluate_quantification(text)
     readability = evaluate_readability_and_length(text)
     skills = extract_skills(text)
+    competitions = evaluate_competitions(text)
 
     # Diagnostic suggestions
     suggestions: List[Dict[str, str]] = []
@@ -317,19 +392,41 @@ def run_rule_evaluation(text: str) -> Dict[str, Any]:
         })
 
     # 6. Academic, Competition & Open-Source Highlights (Key for Campus & Tech)
-    if re.search(r"GPA[：:]\s*(?:3\.[7-9]|4\.[0-9]|[89]\d)/|前\s*(?:[1-9]|10)%", text, re.I):
+    if re.search(r"GPA[：:]\s*(?:3\.[7-9]|4\.[0-9]|[89]\d)/|前\s*\d+(?:\.\d+)?%|Top\s*\d+(?:\.\d+)?%", text, re.I):
         suggestions.append({
             "type": "success",
             "title": "优异学业成绩背书",
             "desc": "检测到优异的绩点（GPA）或突出的专业排名前列，在校招与科研初筛中具备强大学术竞争力。"
         })
 
-    if re.search(r"蓝桥杯|ACM|ICPC|数学建模|计算机设计大赛|互联网\+|软件杯|省[一二三]等奖|国[一二三]等奖", text):
-        suggestions.append({
-            "type": "success",
-            "title": "权威学科竞赛荣誉加持",
-            "desc": "检测到高含金量学科/算法程序设计竞赛获奖荣誉，证明了扎实的算法攻坚与工程落地能力。"
-        })
+    # Nuanced Competition Tier Evaluation
+    if competitions:
+        for c in competitions:
+            tier = c["tier"]
+            if tier == "T1":
+                suggestions.append({
+                    "type": "success",
+                    "title": f"竞赛含金量顶尖 (T1): {c['name']}",
+                    "desc": c["comment"]
+                })
+            elif tier == "T2":
+                suggestions.append({
+                    "type": "success",
+                    "title": f"竞赛含金量高 (T2): {c['name']}",
+                    "desc": c["comment"]
+                })
+            elif tier == "T3":
+                suggestions.append({
+                    "type": "suggestion",
+                    "title": f"竞赛进阶建议 (T3): {c['name']}",
+                    "desc": c["comment"]
+                })
+            elif tier == "T4":
+                suggestions.append({
+                    "type": "warning",
+                    "title": f"竞赛区分度提醒 (T4): {c['name']}",
+                    "desc": c["comment"]
+                })
 
     if re.search(r"github\.com/|开源|README", text, re.I):
         suggestions.append({
@@ -344,5 +441,6 @@ def run_rule_evaluation(text: str) -> Dict[str, Any]:
         "quantification": quant,
         "readability": readability,
         "skills": skills,
+        "competitions": competitions,
         "suggestions": suggestions
     }
